@@ -1,5 +1,6 @@
 {
   "name": "code-mirror",
+  "version": "0.0.1",
   "dependencies": {
     "polymer": "Polymer/polymer#0.2.3"
   }
