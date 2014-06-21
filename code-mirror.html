@@ -40,6 +40,8 @@ license that can be found in the LICENSE file.
         overflow-x: auto;
       }
     </style>
+
+    <div id="content"></div>
   </template>
 
   <script>
@@ -55,20 +57,26 @@ license that can be found in the LICENSE file.
           this.value = this.textContent;
         }
 
-        this.mirror = CodeMirror(this.shadowRoot, {
+        this.mirror = CodeMirror(this.$.content, {
           value: this.value,
           mode: this.mode,
           theme: this.theme,
           tabSize: this.tabSize,
           lineNumbers: this.lineNumbers,
           lineWrapping: this.lineWrapping,
-          gutters: ["CodeMirror-linenumbers"]
+          gutters: ['CodeMirror-linenumbers']
         });
 
         this.mirror.on('change', this.mirrorChanged.bind(this));
       },
+      domReady: function() {
+        this.mirror.refresh();
+      },
       refresh: function() {
         this.mirror.refresh();
+      },
+      focus: function() {
+        this.mirror.focus();
       },
       valueChanged: function() {
         if (this.value && this.value != this.mirror.getValue()) {
@@ -77,9 +85,6 @@ license that can be found in the LICENSE file.
       },
       mirrorChanged: function() {
         this.value = this.mirror.getValue();
-      },
-      focus: function() {
-        this.mirror.focus();
       }
     });
   </script>
