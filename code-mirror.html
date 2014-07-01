@@ -14,6 +14,20 @@ license that can be found in the LICENSE file.
 <!-- Markdown mode -->
 <script src="codemirror-4.1/mode/markdown/markdown.js"></script>
 
+<!-- Add-ons -->
+<script src="codemirror-4.1/addon/edit/matchbrackets.js"></script>
+
+<!-- hinting -->
+<!--
+<script src="codemirror-4.1/addon/hint/show-hint.js"></script>
+<script src="codemirror-4.1/addon/hint/javascript-hint.js"></script>
+-->
+
+<!-- Linting -->
+<script src="jshint.js"></script>
+<script src="codemirror-4.1/addon/lint/lint.js"></script>
+<script src="codemirror-4.1/addon/lint/javascript-lint.js"></script>
+
 <!-- element -->
 <polymer-element name="code-mirror" attributes="value mode theme tabSize lineNumbers lineWrapping">
   <template>
@@ -22,6 +36,9 @@ license that can be found in the LICENSE file.
 
     <!-- CodeMirror theme -->
     <link href="codemirror-4.1/theme/xq-light.css" rel="stylesheet">
+
+    <!-- hinting -->
+    <!--<link href="codemirror-4.1/addon/hint/show-hint.css" rel="stylesheet">-->
 
     <style>
       :host {
@@ -39,6 +56,9 @@ license that can be found in the LICENSE file.
         max-height: 300px;
         overflow-x: auto;
       }
+
+      .lint-error {font-family: arial; font-size: 70%; background: #ffa; color: #a00; padding: 2px 5px 3px; }
+      .lint-error-icon {color: white; background-color: red; font-weight: bold; border-radius: 50%; padding: 0 3px; margin-right: 7px;}
     </style>
 
     <div id="content"></div>
@@ -64,10 +84,71 @@ license that can be found in the LICENSE file.
           tabSize: this.tabSize,
           lineNumbers: this.lineNumbers,
           lineWrapping: this.lineWrapping,
-          gutters: ['CodeMirror-linenumbers']
+          gutters: ['CodeMirror-linenumbers'],
+          extraKeys: {
+            'Ctrl-Space': 'autocomplete'
+          },
         });
 
         this.mirror.on('change', this.mirrorChanged.bind(this));
+        this.hinting();
+      },
+      hinting: function() {
+        var editor = this.mirror;
+        var widgets = [];
+
+        var updateHints = function() {
+          editor.operation(function(){
+            for (var i = 0; i < widgets.length; ++i) {
+              editor.removeLineWidget(widgets[i]);
+            }
+
+            widgets.length = 0;
+
+            JSHINT(this.value);
+
+            for (var i = 0; i < JSHINT.errors.length; ++i) {
+              var err = JSHINT.errors[i];
+
+              if (!err) {
+                continue;
+              }
+
+              var msg = document.createElement('div');
+              var icon = msg.appendChild(document.createElement('span'));
+              icon.innerHTML = '!';
+              icon.className = 'lint-error-icon';
+
+              msg.appendChild(document.createTextNode(err.reason));
+              msg.className = 'lint-error';
+
+              widgets.push(editor.addLineWidget(err.line - 1, msg, {
+                coverGutter: false,
+                noHScroll: true
+              }));
+            }
+          }.bind(this));
+
+          var info = editor.getScrollInfo();
+
+          var after = editor.charCoords({
+            line: editor.getCursor().line + 1,
+            ch: 0
+          }, 'local').top;
+
+          if (info.top + info.clientHeight < after) {
+            this.mirror.scrollTo(null, after - info.clientHeight + 3);
+          }
+        };
+
+        var waiting;
+
+        this.mirror.on('change', function() {
+          clearTimeout(waiting);
+          waiting = setTimeout(updateHints.bind(this), 500);
+        });
+
+        setTimeout(updateHints.bind(this), 100);
       },
       domReady: function() {
         this.mirror.refresh();
