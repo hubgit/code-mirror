@@ -91,7 +91,10 @@ license that can be found in the LICENSE file.
         });
 
         this.mirror.on('change', this.mirrorChanged.bind(this));
-        this.hinting();
+
+        if (this.mode === 'javascript') {
+          this.hinting();
+        }
       },
       hinting: function() {
         var editor = this.mirror;
